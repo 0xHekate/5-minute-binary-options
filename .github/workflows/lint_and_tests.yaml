@@ -1,0 +1,48 @@
+# This workflow will run a lint check
+
+name: Lint Checks And Tests
+
+on:
+  pull_request:
+    branches: [ develop ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [14.x]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Cache node modules
+      uses: actions/cache@v2
+      env:
+        cache-name: cache-node-modules
+      with:
+        path: ~/.npm
+        key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-build-${{ env.cache-name }}-
+          ${{ runner.os }}-build-
+          ${{ runner.os }}-
+
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v2
+      with:
+        node-version: ${{ matrix.node-version }}
+    - run: npm i -g npm
+    - run: npm install
+
+    - name: Run Compiler
+      run: npx hardhat compile
+    - name: Run Lint
+      run: npx eslint '**/*.{js,ts}'
+    - name: Run Solhint
+      run: npx solhint 'contracts/**/*.sol'
+    - name: Run Coverage
+      run: npx hardhat coverage
+    - name: Run Tests
+      run: npx hardhat test
